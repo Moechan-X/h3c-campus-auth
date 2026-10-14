@@ -26,17 +26,17 @@ define Build/Compile
 endef
 
 define Package/luci-app-h3c-auth/install
-	$(INSTALL_DIR) $(1)/htdocs/luci-static/resources/view
+	$(INSTALL_DIR) $(1)/www/luci-static/resources/view
 	$(INSTALL_DATA) ./htdocs/luci-static/resources/view/h3c-auth.js \
-		$(1)/htdocs/luci-static/resources/view/h3c-auth.js
+		$(1)/www/luci-static/resources/view/h3c-auth.js
 
 	$(INSTALL_DIR) $(1)/usr/share/luci/menu.d
 	$(INSTALL_DATA) ./root/usr/share/luci/menu.d/luci-app-h3c-auth.json \
 		$(1)/usr/share/luci/menu.d/luci-app-h3c-auth.json
 
-	$(INSTALL_DIR) $(1)/usr/share/rpcd/acl
-	$(INSTALL_DATA) ./root/usr/share/rpcd/acl/luci-app-h3c-auth.json \
-		$(1)/usr/share/rpcd/acl/luci-app-h3c-auth.json
+	$(INSTALL_DIR) $(1)/usr/share/rpcd/acl.d
+	$(INSTALL_DATA) ./root/usr/share/rpcd/acl.d/luci-app-h3c-auth.json \
+		$(1)/usr/share/rpcd/acl.d/luci-app-h3c-auth.json
 
 	$(INSTALL_DIR) $(1)/usr/libexec/rpcd
 	$(INSTALL_BIN) ./root/usr/libexec/rpcd/luci.h3c_auth \
