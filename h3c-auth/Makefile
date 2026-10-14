@@ -13,7 +13,7 @@ define Package/h3c-auth
   SECTION:=net
   CATEGORY:=Network
   TITLE:=H3C Campus Network Portal Authentication Client
-  DEPENDS:=+curl +jshn
+  DEPENDS:=+jshn
   PKGARCH:=all
 endef
 

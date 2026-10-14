@@ -112,21 +112,25 @@ do_login() {
 
     log_info "Login: user=$user wan_ip=$(echo "$login_data" | grep -oP 'wlanuserip=\K[^&]+')"
 
-    local response http_code
-    response=$(curl -s -w "\n%{http_code}" \
-        -X POST \
-        -H "Content-Type: application/x-www-form-urlencoded" \
-        -H "User-Agent: Mozilla/5.0 (Linux; Android 16; Pixel 10) AppleWebKit/537.36 (KHTML, like Gecko) Edg/155.0.0.0 Mobile Safari/537.36" \
-        -H "Referer: ${referer}" \
-        -d "$login_data" \
-        --connect-timeout 10 \
-        --max-time 15 \
-        --insecure \
-        "$AUTH_URL" 2>/dev/null)
+    local response_file="$STATE_DIR/.login_resp"
+    local headers_file="$STATE_DIR/.login_headers"
 
-    http_code=$(echo "$response" | tail -1)
-    local body
-    body=$(echo "$response" | sed '$d')
+    wget -q -O "$response_file" -S \
+        --post-data="$login_data" \
+        --header="Content-Type: application/x-www-form-urlencoded" \
+        --header="User-Agent: Mozilla/5.0 (Linux; Android 16; Pixel 10) AppleWebKit/537.36 (KHTML, like Gecko) Edg/155.0.0.0 Mobile Safari/537.36" \
+        --header="Referer: ${referer}" \
+        --timeout=15 \
+        --no-check-certificate \
+        "$AUTH_URL" 2>"$headers_file"
+
+    local exit_code=$?
+    local body=""
+    [ -f "$response_file" ] && body=$(cat "$response_file")
+
+    local http_code
+    http_code=$(grep -m1 "HTTP/" "$headers_file" 2>/dev/null | sed 's/.*HTTP\/[0-9.]* \([0-9]*\).*/\1/')
+    [ -z "$http_code" ] && http_code="000"
 
     log_info "Response: HTTP $http_code body=$body"
 
@@ -172,23 +176,25 @@ do_logout() {
 
     log_info "Logout: user=$user"
 
-    local auth_header=""
-    [ -n "$token" ] && auth_header="Authorization: Bearer ${token}"
+    local response_file="$STATE_DIR/.logout_resp"
+    local headers_file="$STATE_DIR/.logout_headers"
 
-    local response http_code
-    response=$(curl -s -w "\n%{http_code}" \
-        -X POST \
-        -H "Content-Type: application/x-www-form-urlencoded" \
-        -H "$auth_header" \
-        -d "$logout_data" \
-        --connect-timeout 5 \
-        --max-time 10 \
-        --insecure \
-        "$LOGOUT_URL" 2>/dev/null)
+    [ -n "$token" ] && local auth_header="Authorization: Bearer ${token}" || local auth_header=""
 
-    http_code=$(echo "$response" | tail -1)
-    local body
-    body=$(echo "$response" | sed '$d')
+    wget -q -O "$response_file" -S \
+        --post-data="$logout_data" \
+        --header="Content-Type: application/x-www-form-urlencoded" \
+        ${auth_header:+--header="$auth_header"} \
+        --timeout=10 \
+        --no-check-certificate \
+        "$LOGOUT_URL" 2>"$headers_file"
+
+    local body=""
+    [ -f "$response_file" ] && body=$(cat "$response_file")
+
+    local http_code
+    http_code=$(grep -m1 "HTTP/" "$headers_file" 2>/dev/null | sed 's/.*HTTP\/[0-9.]* \([0-9]*\).*/\1/')
+    [ -z "$http_code" ] && http_code="000"
 
     log_info "Logout response: HTTP $http_code body=$body"
 
@@ -223,18 +229,21 @@ do_heartbeat() {
         return 1
     }
 
-    local response http_code
-    response=$(curl -s -w "\n%{http_code}" \
-        -X GET \
-        -H "Authorization: Bearer ${token}" \
-        --connect-timeout 5 \
-        --max-time 10 \
-        --insecure \
-        "$HEARTBEAT_URL" 2>/dev/null)
+    local response_file="$STATE_DIR/.heartbeat_resp"
+    local headers_file="$STATE_DIR/.heartbeat_headers"
 
-    http_code=$(echo "$response" | tail -1)
-    local body
-    body=$(echo "$response" | sed '$d')
+    wget -q -O "$response_file" -S \
+        --header="Authorization: Bearer ${token}" \
+        --timeout=10 \
+        --no-check-certificate \
+        "$HEARTBEAT_URL" 2>"$headers_file"
+
+    local body=""
+    [ -f "$response_file" ] && body=$(cat "$response_file")
+
+    local http_code
+    http_code=$(grep -m1 "HTTP/" "$headers_file" 2>/dev/null | sed 's/.*HTTP\/[0-9.]* \([0-9]*\).*/\1/')
+    [ -z "$http_code" ] && http_code="000"
 
     if [ "$http_code" != "200" ]; then
         log_warn "Heartbeat: HTTP $http_code"
@@ -271,26 +280,19 @@ EOJSON
 check_internet() {
     local check_host="${1:-$CHECK_HOST}"
 
-    local http_code
-    http_code=$(curl -s -o /dev/null -w "%{http_code}" \
-        --connect-timeout 5 \
-        --max-time 8 \
-        "$check_host" 2>/dev/null)
-
-    case "$http_code" in
-        204|200) return 0 ;;
-        *) return 1 ;;
-    esac
+    wget -q -O /dev/null \
+        --timeout=8 \
+        --no-check-certificate \
+        "$check_host" 2>/dev/null
+    return $?
 }
 
 check_portal_reachable() {
-    local http_code
-    http_code=$(curl -s -o /dev/null -w "%{http_code}" \
-        --connect-timeout 5 \
-        --max-time 8 \
-        "$AUTH_URL" 2>/dev/null)
-
-    [ "$http_code" != "000" ]
+    wget -q -O /dev/null \
+        --timeout=8 \
+        --no-check-certificate \
+        "$AUTH_URL" 2>/dev/null
+    return $?
 }
 
 # --- Main Auth Loop ---
