@@ -22,17 +22,18 @@ jobs:
             build-essential flex bison python3 python3-setuptools \
             libncurses5-dev zlib1g-dev gawk gcc-multilib \
             libssl-dev elfutils libelf-dev rsync unzip wget \
-            file quilt help2man lua5.1
+            file quilt help2man lua5.1 xz-utils
 
       - name: Download ImmortalWrt SDK
         run: |
-          SDK_VER="23.05.4"
-          SDK_URL="https://downloads.immortalwrt.org/releases/${SDK_VER}/targets/mediatek/filogic/immortalwrt-sdk-${SDK_VER}-mediatek-filogic_Linux-x86_64.tar.zst"
+          SDK_VER="23.05.7"
+          SDK_FILE="immortalwrt-sdk-${SDK_VER}-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64.tar.xz"
+          SDK_URL="https://downloads.immortalwrt.org/releases/${SDK_VER}/targets/mediatek/filogic/${SDK_FILE}"
           echo "Downloading SDK ${SDK_VER}..."
-          wget -q --show-progress "$SDK_URL" -O sdk.tar.zst
+          wget -q "$SDK_URL" -O sdk.tar.xz
           mkdir -p sdk
-          tar --use-compress-program=unzstd -xf sdk.tar.zst -C sdk --strip-components=1
-          rm sdk.tar.zst
+          tar -xJf sdk.tar.xz -C sdk --strip-components=1
+          rm sdk.tar.xz
 
       - name: Prepare feeds
         run: |
