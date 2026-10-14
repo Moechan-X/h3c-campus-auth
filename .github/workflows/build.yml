@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    name: Build ipk packages
+  build-apk:
+    name: Build apk packages (OpenWrt 25.x)
     runs-on: ubuntu-latest
 
     steps:
@@ -22,23 +22,20 @@ jobs:
             build-essential flex bison python3 python3-setuptools \
             libncurses5-dev zlib1g-dev gawk gcc-multilib \
             libssl-dev elfutils libelf-dev rsync unzip wget \
-            file quilt help2man lua5.1 xz-utils
+            file quilt help2man lua5.1 xz-utils zstd
 
-      - name: Download ImmortalWrt SDK
+      - name: Download OpenWrt Snapshot SDK
         run: |
-          SDK_VER="23.05.7"
-          SDK_FILE="immortalwrt-sdk-${SDK_VER}-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64.tar.xz"
-          SDK_URL="https://downloads.immortalwrt.org/releases/${SDK_VER}/targets/mediatek/filogic/${SDK_FILE}"
-          echo "Downloading SDK ${SDK_VER}..."
-          wget -q "$SDK_URL" -O sdk.tar.xz
+          SDK_URL="https://downloads.openwrt.org/snapshots/targets/mediatek/filogic/openwrt-sdk-mediatek-filogic_gcc-14.4.0_musl.Linux-x86_64.tar.zst"
+          echo "Downloading OpenWrt snapshot SDK..."
+          wget -q "$SDK_URL" -O sdk.tar.zst
           mkdir -p sdk
-          tar -xJf sdk.tar.xz -C sdk --strip-components=1
-          rm sdk.tar.xz
+          tar --use-compress-program=unzstd -xf sdk.tar.zst -C sdk --strip-components=1
+          rm sdk.tar.zst
 
-      - name: Prepare feeds
+      - name: Prepare SDK
         run: |
           cd sdk
-          # Update package feeds
           make defconfig
 
       - name: Copy packages to SDK
@@ -58,10 +55,12 @@ jobs:
           make package/luci-app-h3c-auth/compile V=s -j$(nproc) || \
           make package/luci-app-h3c-auth/compile V=s -j1
 
-      - name: Collect ipk packages
+      - name: Collect packages
         run: |
           mkdir -p output
-          find sdk/bin/packages -name '*.ipk' -exec cp {} output/ \;
+          find sdk/bin/packages -name '*.apk' -exec cp {} output/ \; 2>/dev/null || true
+          find sdk/bin/packages -name '*.ipk' -exec cp {} output/ \; 2>/dev/null || true
+          find sdk/build_dir -name '*.apk' -exec cp {} output/ \; 2>/dev/null || true
           find sdk/build_dir -name '*.ipk' -exec cp {} output/ \; 2>/dev/null || true
           echo "=== Built packages ==="
           ls -lh output/ || echo "No packages found"
@@ -69,13 +68,13 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: h3c-campus-auth-ipk
-          path: output/*.ipk
+          name: h3c-campus-auth-packages
+          path: output/*
           if-no-files-found: warn
 
       - name: Create Release (on tag)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: output/*.ipk
+          files: output/*
           generate_release_notes: true
