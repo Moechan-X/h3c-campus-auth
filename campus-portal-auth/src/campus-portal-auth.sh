@@ -10,12 +10,22 @@ LOG_TAG="campus-portal-auth"
 STATE_DIR="/tmp/campus-portal-auth"
 PID_FILE="$STATE_DIR/auth.pid"
 STATUS_FILE="$STATE_DIR/status"
+DEBUG_LOG="$STATE_DIR/debug.log"
 
 mkdir -p "$STATE_DIR"
 
 log_info()  { logger -t "$LOG_TAG" -p info "$*"; }
 log_warn()  { logger -t "$LOG_TAG" -p warning "$*"; }
 log_error() { logger -t "$LOG_TAG" -p err "$*"; }
+
+# Debug logging to file
+debug_log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$DEBUG_LOG"
+    # Keep log file under 100KB
+    if [ -f "$DEBUG_LOG" ] && [ $(wc -c < "$DEBUG_LOG" 2>/dev/null || echo 0) -gt 102400 ]; then
+        tail -c 51200 "$DEBUG_LOG" > "$DEBUG_LOG.tmp" 2>/dev/null && mv "$DEBUG_LOG.tmp" "$DEBUG_LOG"
+    fi
+}
 
 # --- Get WAN IP ---
 get_wan_ip() {
@@ -111,6 +121,10 @@ do_login() {
     referer="$(get_referer)"
 
     log_info "Login: user=$user wan_ip=$(echo "$login_data" | grep -oP 'wlanuserip=\K[^&]+')"
+    debug_log "=== LOGIN REQUEST ==="
+    debug_log "URL: $AUTH_URL"
+    debug_log "DATA: $login_data"
+    debug_log "REFERER: $referer"
 
     local response_file="$STATE_DIR/.login_resp"
     local headers_file="$STATE_DIR/.login_headers"
@@ -133,6 +147,10 @@ do_login() {
     [ -z "$http_code" ] && http_code="000"
 
     log_info "Response: HTTP $http_code body=$body"
+    debug_log "EXIT CODE: $exit_code"
+    debug_log "HTTP CODE: $http_code"
+    debug_log "RESPONSE BODY: $body"
+    debug_log "HEADERS: $(cat "$headers_file" 2>/dev/null)"
 
     if [ "$http_code" = "200" ]; then
         # Parse JSON: {"success":true,"code":200,"result":{"token":"...","distoken":"...","message":"..."}}
@@ -446,8 +464,29 @@ case "${1:-}" in
             echo "offline"
         fi
         ;;
+    debug)
+        echo "=== Debug Log (last 50 lines) ==="
+        if [ -f "$DEBUG_LOG" ]; then
+            tail -50 "$DEBUG_LOG"
+        else
+            echo "No debug log found at $DEBUG_LOG"
+        fi
+        echo ""
+        echo "=== Current Status ==="
+        [ -f "$STATUS_FILE" ] && cat "$STATUS_FILE" || echo "No status file"
+        echo ""
+        echo "=== Token ==="
+        [ -f "$STATE_DIR/token" ] && echo "Token exists ($(wc -c < "$STATE_DIR/token") bytes)" || echo "No token"
+        echo ""
+        echo "=== Session Info ==="
+        [ -f "$STATE_DIR/session_info" ] && cat "$STATE_DIR/session_info" || echo "No session info"
+        ;;
+    clearlog)
+        rm -f "$DEBUG_LOG"
+        echo "Debug log cleared"
+        ;;
     *)
-        echo "Usage: $0 {start|stop|restart|status|login|logout|check}"
+        echo "Usage: $0 {start|stop|restart|status|login|logout|check|debug|clearlog}"
         exit 1
         ;;
 esac
