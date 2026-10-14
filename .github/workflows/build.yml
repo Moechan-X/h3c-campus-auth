@@ -40,20 +40,20 @@ jobs:
 
       - name: Copy packages to SDK
         run: |
-          cp -r h3c-auth sdk/package/h3c-auth
-          cp -r luci-app-h3c-auth sdk/package/luci-app-h3c-auth
+          cp -r campus-portal-auth sdk/package/campus-portal-auth
+          cp -r luci-app-campus-portal-auth sdk/package/luci-app-campus-portal-auth
 
-      - name: Build h3c-auth
+      - name: Build campus-portal-auth
         run: |
           cd sdk
-          make package/h3c-auth/compile V=s -j$(nproc) || \
-          make package/h3c-auth/compile V=s -j1
+          make package/campus-portal-auth/compile V=s -j$(nproc) || \
+          make package/campus-portal-auth/compile V=s -j1
 
-      - name: Build luci-app-h3c-auth
+      - name: Build luci-app-campus-portal-auth
         run: |
           cd sdk
-          make package/luci-app-h3c-auth/compile V=s -j$(nproc) || \
-          make package/luci-app-h3c-auth/compile V=s -j1
+          make package/luci-app-campus-portal-auth/compile V=s -j$(nproc) || \
+          make package/luci-app-campus-portal-auth/compile V=s -j1
 
       - name: Collect packages
         run: |

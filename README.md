@@ -1,6 +1,6 @@
-# H3C Campus Auth - 校园网认证插件
+# Campus Portal Auth - 校园网 Portal 认证插件
 
-适用于 H3C NX30Pro / ImmortalWrt (OpenWrt 23.05+) 的校园网 Portal 认证插件。
+适用于 OpenWrt 的校园网 Portal 认证插件。
 
 ## 功能
 
@@ -14,20 +14,20 @@
 
 ```
 h3c-campus-auth/
-├── h3c-auth/                          # 核心认证包
-│   ├── Makefile                       # OpenWrt 构建文件
-│   ├── src/h3c-auth.sh               # 认证客户端脚本
+├── campus-portal-auth/                          # 核心认证包
+│   ├── Makefile                                 # OpenWrt 构建文件
+│   ├── src/campus-portal-auth.sh               # 认证客户端脚本
 │   └── root/
-│       ├── etc/init.d/h3c-auth       # procd 服务脚本
-│       ├── etc/config/h3c_auth       # UCI 默认配置
-│       └── etc/hotplug.d/iface/99-h3c-auth  # WAN 热插拔
-└── luci-app-h3c-auth/                 # LuCI 管理界面
+│       ├── etc/init.d/campus-portal-auth       # procd 服务脚本
+│       ├── etc/config/campus_portal_auth       # UCI 默认配置
+│       └── etc/hotplug.d/iface/99-campus-portal-auth  # WAN 热插拔
+└── luci-app-campus-portal-auth/                 # LuCI 管理界面
     ├── Makefile
-    ├── htdocs/luci-static/resources/view/h3c-auth.js  # 前端 JS
-    ├── root/usr/share/luci/menu.d/    # LuCI 菜单
-    ├── root/usr/share/rpcd/acl/       # 权限配置
-    ├── root/usr/libexec/rpcd/         # RPCD 后端
-    └── po/zh_Hans/                    # 中文翻译
+    ├── htdocs/luci-static/resources/view/campus-portal-auth.js  # 前端 JS
+    ├── root/usr/share/luci/menu.d/              # LuCI 菜单
+    ├── root/usr/share/rpcd/acl/                 # 权限配置
+    ├── root/usr/libexec/rpcd/                   # RPCD 后端
+    └── po/zh_Hans/                              # 中文翻译
 ```
 
 ## 构建方法
@@ -36,20 +36,20 @@ h3c-campus-auth/
 
 ```bash
 # 在 OpenWrt SDK 或完整源码树中
-cp -r h3c-auth/ $(OPENWRT_DIR)/package/h3c-auth/
-cp -r luci-app-h3c-auth/ $(OPENWRT_DIR)/package/luci-app-h3c-auth/
+cp -r campus-portal-auth/ $(OPENWRT_DIR)/package/campus-portal-auth/
+cp -r luci-app-campus-portal-auth/ $(OPENWRT_DIR)/package/luci-app-campus-portal-auth/
 
 cd $(OPENWRT_DIR)
-make menuconfig  # 选择 LuCI -> Applications -> luci-app-h3c-auth
-make package/h3c-auth/compile V=s
-make package/luci-app-h3c-auth/compile V=s
+make menuconfig  # 选择 LuCI -> Applications -> luci-app-campus-portal-auth
+make package/campus-portal-auth/compile V=s
+make package/luci-app-campus-portal-auth/compile V=s
 ```
 
 ### 方法二：单独编译 ipk
 
 ```bash
 # 需要 OpenWrt SDK
-cd h3c-auth
+cd campus-portal-auth
 make package/index  # 或直接构建
 ```
 
@@ -57,27 +57,27 @@ make package/index  # 或直接构建
 
 ```bash
 # 在路由器上安装
-opkg install h3c-auth_1.0.0_all.ipk
-opkg install luci-app-h3c-auth_1.0.0_all.ipk
+opkg install campus-portal-auth_1.0.0_all.ipk
+opkg install luci-app-campus-portal-auth_1.0.0_all.ipk
 ```
 
 ## 配置
 
-安装后在 LuCI 中访问 **状态 → H3C Campus Auth** 进行配置。
+安装后在 LuCI 中访问 **状态 → Campus Portal Auth** 进行配置。
 
 或通过命令行：
 ```bash
-uci set h3c_auth.main.enabled='1'
-uci set h3c_auth.main.username='your_username'
-uci set h3c_auth.main.password='your_password'
-uci set h3c_auth.main.auth_url='http://10.0.0.1/portal/login'
-uci commit h3c_auth
-/etc/init.d/h3c-auth restart
+uci set campus_portal_auth.main.enabled='1'
+uci set campus_portal_auth.main.username='your_username'
+uci set campus_portal_auth.main.password='your_password'
+uci set campus_portal_auth.main.auth_url='http://10.0.0.1/portal/login'
+uci commit campus_portal_auth
+/etc/init.d/campus-portal-auth restart
 ```
 
 ## 适配你的校园网
 
-核心认证脚本 `h3c-auth.sh` 中的 Protocol Adapter 部分需要根据你的校园网认证协议进行定制：
+核心认证脚本 `campus-portal-auth.sh` 中的 Protocol Adapter 部分需要根据你的校园网认证协议进行定制：
 
 1. **`build_login_data()`** - 修改 POST 请求的字段名和格式
 2. **`do_login()`** - 修改响应解析逻辑（成功/失败判断）

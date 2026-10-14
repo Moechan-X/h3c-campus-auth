@@ -1,0 +1,17 @@
+{
+    "luci-app-campus-portal-auth": {
+        "description": "Grant access to Campus Portal Auth configuration",
+        "read": {
+            "ubus": {
+                "file": [ "stat", "read" ]
+            },
+            "uci": [ "campus_portal_auth" ]
+        },
+        "write": {
+            "ubus": {
+                "file": [ "exec", "write" ]
+            },
+            "uci": [ "campus_portal_auth" ]
+        }
+    }
+}

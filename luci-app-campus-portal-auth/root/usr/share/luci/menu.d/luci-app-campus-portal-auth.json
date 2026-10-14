@@ -1,0 +1,13 @@
+{
+    "admin/status/campus-portal-auth": {
+        "title": "校园网 Portal 认证",
+        "order": 90,
+        "action": {
+            "type": "view",
+            "path": "campus-portal-auth"
+        },
+        "depends": {
+            "acl": [ "luci-app-campus-portal-auth" ]
+        }
+    }
+}
