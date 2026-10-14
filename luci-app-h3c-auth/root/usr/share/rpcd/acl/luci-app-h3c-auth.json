@@ -1,0 +1,17 @@
+{
+    "luci-app-h3c-auth": {
+        "description": "Grant access to H3C Campus Auth configuration",
+        "read": {
+            "ubus": {
+                "file": [ "stat", "read" ]
+            },
+            "uci": [ "h3c_auth" ]
+        },
+        "write": {
+            "ubus": {
+                "file": [ "exec", "write" ]
+            },
+            "uci": [ "h3c_auth" ]
+        }
+    }
+}

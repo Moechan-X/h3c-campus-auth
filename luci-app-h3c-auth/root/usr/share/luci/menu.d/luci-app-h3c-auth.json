@@ -1,0 +1,13 @@
+{
+    "admin/status/h3c-auth": {
+        "title": "H3C Campus Auth",
+        "order": 90,
+        "action": {
+            "type": "view",
+            "path": "h3c-auth"
+        },
+        "depends": {
+            "acl": [ "luci-app-h3c-auth" ]
+        }
+    }
+}

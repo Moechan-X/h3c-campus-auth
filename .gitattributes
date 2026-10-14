@@ -1,0 +1,9 @@
+# Shell scripts must have LF endings for OpenWrt
+*.sh text eol=lf
+*.init text eol=lf
+*.config text eol=lf
+Makefile text eol=lf
+*.po text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.js text eol=lf

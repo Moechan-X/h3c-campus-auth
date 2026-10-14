@@ -1,0 +1,80 @@
+name: Build OpenWrt Packages
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ipk packages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential flex bison python3 python3-setuptools \
+            libncurses5-dev zlib1g-dev gawk gcc-multilib \
+            libssl-dev elfutils libelf-dev rsync unzip wget \
+            file quilt help2man lua5.1
+
+      - name: Download ImmortalWrt SDK
+        run: |
+          SDK_VER="23.05.4"
+          SDK_URL="https://downloads.immortalwrt.org/releases/${SDK_VER}/targets/mediatek/filogic/immortalwrt-sdk-${SDK_VER}-mediatek-filogic_Linux-x86_64.tar.zst"
+          echo "Downloading SDK ${SDK_VER}..."
+          wget -q --show-progress "$SDK_URL" -O sdk.tar.zst
+          mkdir -p sdk
+          tar --use-compress-program=unzstd -xf sdk.tar.zst -C sdk --strip-components=1
+          rm sdk.tar.zst
+
+      - name: Prepare feeds
+        run: |
+          cd sdk
+          # Update package feeds
+          make defconfig
+
+      - name: Copy packages to SDK
+        run: |
+          cp -r h3c-auth sdk/package/h3c-auth
+          cp -r luci-app-h3c-auth sdk/package/luci-app-h3c-auth
+
+      - name: Build h3c-auth
+        run: |
+          cd sdk
+          make package/h3c-auth/compile V=s -j$(nproc) || \
+          make package/h3c-auth/compile V=s -j1
+
+      - name: Build luci-app-h3c-auth
+        run: |
+          cd sdk
+          make package/luci-app-h3c-auth/compile V=s -j$(nproc) || \
+          make package/luci-app-h3c-auth/compile V=s -j1
+
+      - name: Collect ipk packages
+        run: |
+          mkdir -p output
+          find sdk/bin/packages -name '*.ipk' -exec cp {} output/ \;
+          find sdk/build_dir -name '*.ipk' -exec cp {} output/ \; 2>/dev/null || true
+          echo "=== Built packages ==="
+          ls -lh output/ || echo "No packages found"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: h3c-campus-auth-ipk
+          path: output/*.ipk
+          if-no-files-found: warn
+
+      - name: Create Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: output/*.ipk
+          generate_release_notes: true

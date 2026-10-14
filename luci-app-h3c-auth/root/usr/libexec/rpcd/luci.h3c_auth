@@ -1,0 +1,93 @@
+#!/bin/sh
+# RPCD plugin for H3C Campus Auth
+# Called by rpcd as: script call <method> '<params_json>'
+# Or: script list
+
+AUTH_SCRIPT="/usr/lib/h3c-auth/h3c-auth.sh"
+STATE_DIR="/tmp/h3c-auth"
+
+case "$1" in
+    list)
+        cat <<'EOF'
+{
+    "get_status": {
+        "description": "Get auth service status"
+    },
+    "do_action": {
+        "description": "Perform auth action",
+        "params": {
+            "action": {
+                "type": "String",
+                "description": "Action: restart, stop, check, login, logout"
+            }
+        }
+    }
+}
+EOF
+        exit 0
+        ;;
+    call)
+        METHOD="$2"
+        PARAMS="$3"
+        ;;
+    *)
+        echo '{"error":"Usage: script list | script call <method> [params]"}'
+        exit 1
+        ;;
+esac
+
+case "$METHOD" in
+    get_status)
+        pid=""
+        status="stopped"
+        [ -f "$STATE_DIR/auth.pid" ] && pid=$(cat "$STATE_DIR/auth.pid")
+        if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+            status="running"
+        fi
+        auth_status=""
+        [ -f "$STATE_DIR/status" ] && auth_status=$(head -1 "$STATE_DIR/status")
+        [ -n "$auth_status" ] && status="$auth_status"
+
+        cat <<EOJSON
+{"status":"${status}","pid":"${pid:-""}"}
+EOJSON
+        ;;
+
+    do_action)
+        action=$(echo "$PARAMS" | jsonfilter -e '@.action' 2>/dev/null)
+        case "$action" in
+            restart)
+                /etc/init.d/h3c-auth restart >/dev/null 2>&1
+                echo '{"result":true,"message":"Service restarted"}'
+                ;;
+            stop)
+                /etc/init.d/h3c-auth stop >/dev/null 2>&1
+                echo '{"result":true,"message":"Service stopped"}'
+                ;;
+            check)
+                result=$("$AUTH_SCRIPT" check 2>/dev/null)
+                if echo "$result" | grep -q "online"; then
+                    echo '{"result":true,"message":"online"}'
+                else
+                    echo '{"result":false,"message":"offline"}'
+                fi
+                ;;
+            login)
+                "$AUTH_SCRIPT" login >/dev/null 2>&1
+                echo '{"result":true}'
+                ;;
+            logout)
+                "$AUTH_SCRIPT" logout >/dev/null 2>&1
+                echo '{"result":true}'
+                ;;
+            *)
+                echo '{"result":false,"message":"Unknown action"}'
+                ;;
+        esac
+        ;;
+
+    *)
+        echo '{"error":"Unknown method: '"$METHOD"'"}'
+        exit 1
+        ;;
+esac
