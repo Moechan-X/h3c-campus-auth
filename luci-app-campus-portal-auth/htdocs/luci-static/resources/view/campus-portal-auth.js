@@ -86,26 +86,26 @@ return view.extend({
 
         var m, s, o;
 
-        m = new form.Map('campus_portal_auth', _('Campus Portal Auth'),
-            _('Campus network portal authentication for router (SCITC BRAS ME60).'));
+        m = new form.Map('campus_portal_auth', '校园网 Portal 认证',
+            '适用于校园网 Portal 认证的路由器插件（SCITC BRAS ME60 协议）。');
 
         // --- Status Section ---
-        s = m.section(form.NamedSection, '__status__', _('Service Status'));
+        s = m.section(form.NamedSection, '__status__', '服务状态');
         s.anonymous = true;
         s.render = function() {
             return isRunning(pid).then(function(running) {
                 var statusText, statusColor;
                 if (!running) {
-                    statusText = _('Stopped');
+                    statusText = '已停止';
                     statusColor = '#999';
                 } else if (rawStatus === 'authenticated') {
-                    statusText = _('Connected');
+                    statusText = '已连接';
                     statusColor = '#4caf50';
                 } else if (rawStatus === 'disconnected') {
-                    statusText = _('Disconnected');
+                    statusText = '已断开';
                     statusColor = '#f44336';
                 } else {
-                    statusText = _('Running');
+                    statusText = '运行中';
                     statusColor = '#ff980e';
                 }
 
@@ -113,7 +113,7 @@ return view.extend({
 
                 // Status indicator
                 nodes.push(E('div', { 'class': 'cbi-value' }, [
-                    E('label', { 'class': 'cbi-value-title' }, _('Status')),
+                    E('label', { 'class': 'cbi-value-title' }, '状态'),
                     E('div', { 'class': 'cbi-value-field' }, [
                         E('span', { 'style': 'display:inline-block;width:14px;height:14px;border-radius:50%;background:' + statusColor + ';margin-right:8px;vertical-align:middle;' }),
                         E('strong', {}, statusText),
@@ -123,54 +123,54 @@ return view.extend({
 
                 // Action buttons
                 nodes.push(E('div', { 'class': 'cbi-value' }, [
-                    E('label', { 'class': 'cbi-value-title' }, _('Actions')),
+                    E('label', { 'class': 'cbi-value-title' }, '操作'),
                     E('div', { 'class': 'cbi-value-field' }, [
                         E('button', {
                             'class': 'btn cbi-button cbi-button-apply',
                             'click': function(ev) {
                                 ev.target.disabled = true;
                                 doAction('restart').then(function() {
-                                    ui.addNotification(null, E('p', _('Service restarted')), 'success');
+                                    ui.addNotification(null, E('p', '服务已重启'), 'success');
                                     window.setTimeout(function() { location.reload(); }, 1500);
                                 }).catch(function() {
                                     ev.target.disabled = false;
                                 });
                             }
-                        }, _('Restart')),
+                        }, '重启'),
                         ' ',
                         E('button', {
                             'class': 'btn cbi-button cbi-button-negative',
                             'click': function(ev) {
                                 ev.target.disabled = true;
                                 doAction('stop').then(function() {
-                                    ui.addNotification(null, E('p', _('Service stopped')), 'warning');
+                                    ui.addNotification(null, E('p', '服务已停止'), 'warning');
                                     window.setTimeout(function() { location.reload(); }, 1500);
                                 }).catch(function() {
                                     ev.target.disabled = false;
                                 });
                             }
-                        }, _('Stop')),
+                        }, '停止'),
                         ' ',
                         E('button', {
                             'class': 'btn cbi-button cbi-button-action',
                             'click': function(ev) {
                                 ev.target.disabled = true;
                                 var orig = ev.target.textContent;
-                                ev.target.textContent = _('Checking...');
+                                ev.target.textContent = '检测中...';
                                 doAction('check').then(function(res) {
                                     ev.target.disabled = false;
                                     ev.target.textContent = orig;
                                     if (res.result) {
-                                        ui.addNotification(null, E('p', _('Internet is reachable')), 'success');
+                                        ui.addNotification(null, E('p', '网络可达'), 'success');
                                     } else {
-                                        ui.addNotification(null, E('p', _('Internet is NOT reachable')), 'warning');
+                                        ui.addNotification(null, E('p', '网络不可达'), 'warning');
                                     }
                                 }).catch(function() {
                                     ev.target.disabled = false;
                                     ev.target.textContent = orig;
                                 });
                             }
-                        }, _('Check Connection'))
+                        }, '检测连接')
                     ])
                 ]));
 
@@ -180,27 +180,27 @@ return view.extend({
                         var info = JSON.parse(sessionJson);
                         if (info.authResult) {
                             nodes.push(E('div', { 'style': 'margin-top:1em;border-top:1px solid #ddd;padding-top:0.5em;' }, [
-                                E('h4', {}, _('Session Info'))
+                                E('h4', {}, '会话信息')
                             ]));
 
                             nodes.push(E('div', { 'class': 'cbi-value' }, [
-                                E('label', { 'class': 'cbi-value-title' }, _('Auth Result')),
+                                E('label', { 'class': 'cbi-value-title' }, '认证结果'),
                                 E('div', { 'class': 'cbi-value-field' }, E('span', {}, info.authResult))
                             ]));
                             nodes.push(E('div', { 'class': 'cbi-value' }, [
-                                E('label', { 'class': 'cbi-value-title' }, _('Account')),
+                                E('label', { 'class': 'cbi-value-title' }, '账号'),
                                 E('div', { 'class': 'cbi-value-field' }, E('span', {}, info.accountId || '-'))
                             ]));
                             nodes.push(E('div', { 'class': 'cbi-value' }, [
-                                E('label', { 'class': 'cbi-value-title' }, _('Used Traffic')),
+                                E('label', { 'class': 'cbi-value-title' }, '已用流量'),
                                 E('div', { 'class': 'cbi-value-field' }, E('span', {}, formatFlow(info.usedFlow)))
                             ]));
                             nodes.push(E('div', { 'class': 'cbi-value' }, [
-                                E('label', { 'class': 'cbi-value-title' }, _('Online Time')),
+                                E('label', { 'class': 'cbi-value-title' }, '在线时长'),
                                 E('div', { 'class': 'cbi-value-field' }, E('span', {}, formatTime(info.usedTime)))
                             ]));
                             nodes.push(E('div', { 'class': 'cbi-value' }, [
-                                E('label', { 'class': 'cbi-value-title' }, _('Last Auth')),
+                                E('label', { 'class': 'cbi-value-title' }, '上次认证'),
                                 E('div', { 'class': 'cbi-value-field' }, E('span', {}, info.lastAuthTime || '-'))
                             ]));
                         }
@@ -212,81 +212,81 @@ return view.extend({
         };
 
         // --- Account Section ---
-        s = m.section(form.NamedSection, 'main', _('Account Settings'),
-            _('Campus network authentication credentials.'));
+        s = m.section(form.NamedSection, 'main', '账号设置',
+            '校园网认证凭据。');
         s.addremove = false;
 
-        o = s.option(form.Flag, 'enabled', _('Enable'));
+        o = s.option(form.Flag, 'enabled', '启用');
         o.default = '0';
         o.rmempty = false;
 
-        o = s.option(form.Value, 'username', _('Username'), _('Campus account (e.g. phone number).'));
+        o = s.option(form.Value, 'username', '用户名', '校园网账号（如手机号）。');
         o.rmempty = false;
         o.placeholder = '17800000000';
 
-        o = s.option(form.Value, 'password', _('Password'), _('Campus account password.'));
+        o = s.option(form.Value, 'password', '密码', '校园网账号密码。');
         o.password = true;
         o.rmempty = false;
 
         // --- Portal Section ---
-        s = m.section(form.NamedSection, 'main', _('Portal Settings'),
-            _('BRAS portal configuration. Defaults match SCITC campus network.'));
+        s = m.section(form.NamedSection, 'main', 'Portal 设置',
+            'BRAS Portal 配置，默认值适配 SCITC 校园网。');
         s.addremove = false;
 
-        o = s.option(form.Value, 'auth_url', _('Auth API URL'), _('Portal authentication API endpoint.'));
+        o = s.option(form.Value, 'auth_url', '认证 API 地址', 'Portal 认证 API 端点。');
         o.placeholder = 'http://10.2.1.27/api/portal/webauth';
         o.rmempty = false;
 
-        o = s.option(form.Value, 'logout_url', _('Logout URL'), _('Logout API endpoint (requires Bearer token).'));
+        o = s.option(form.Value, 'logout_url', '登出地址', '登出 API 端点（需要 Bearer token）。');
         o.placeholder = 'http://10.2.1.27/api/portal/user/logout';
 
-        o = s.option(form.Value, 'wlanacname', _('BRAS Name (wlanacname)'), _('Access controller name from portal URL.'));
+        o = s.option(form.Value, 'wlanacname', 'BRAS 名称 (wlanacname)', 'Portal URL 中的接入控制器名称。');
         o.placeholder = 'SCITC-BRAS-ME60';
         o.rmempty = false;
 
-        o = s.option(form.Value, 'login_mode', _('Login Mode'), _('Authentication mode.'));
-        o.value('password', _('Password'));
-        o.value('pin', _('PIN'));
+        o = s.option(form.Value, 'login_mode', '登录模式', '认证模式。');
+        o.value('password', '密码');
+        o.value('pin', 'PIN 码');
         o.default = 'password';
 
-        o = s.option(form.Flag, 'record_terminal_mac', _('Record Terminal MAC'), _('Send MAC address to portal.'));
+        o = s.option(form.Flag, 'record_terminal_mac', '上报终端 MAC', '向 Portal 上报 MAC 地址。');
         o.default = 'Y';
         o.enabled = 'Y';
         o.disabled = 'N';
 
-        o = s.option(form.Value, 'browser_fingerprint', _('Browser Fingerprint'), _('Leave empty to auto-generate from router MAC.'));
+        o = s.option(form.Value, 'browser_fingerprint', '浏览器指纹', '留空则根据路由器 MAC 自动生成。');
         o.optional = true;
-        o.placeholder = _('Auto-generated');
+        o.placeholder = '自动生成';
 
-        o = s.option(form.Value, 'heartbeat_url', _('Heartbeat URL'), _('Session keepalive endpoint (uses Bearer token). Leave empty to disable.'));
+        o = s.option(form.Value, 'heartbeat_url', '心跳地址', '会话保活端点（使用 Bearer token）。留空则禁用。');
         o.optional = true;
         o.placeholder = 'http://10.2.1.27/api/portal/user/info';
 
         // --- Advanced Section ---
-        s = m.section(form.NamedSection, 'main', _('Advanced Settings'),
-            _('Reconnection behavior and network monitoring.'));
+        s = m.section(form.NamedSection, 'main', '高级设置',
+            '自动重连行为与网络监控。');
         s.addremove = false;
 
-        o = s.option(form.Value, 'check_interval', _('Check Interval (s)'), _('Seconds between connectivity checks.'));
+        o = s.option(form.Value, 'check_interval', '检测间隔（秒）', '网络连通性检测间隔（秒）。');
         o.datatype = 'uinteger';
         o.default = '60';
         o.rmempty = false;
 
-        o = s.option(form.Value, 'max_retries', _('Max Retries'), _('Max login attempts before cooldown.'));
+        o = s.option(form.Value, 'max_retries', '最大重试次数', '冷却前最大登录重试次数。');
         o.datatype = 'uinteger';
         o.default = '3';
         o.rmempty = false;
 
-        o = s.option(form.Value, 'retry_delay', _('Retry Delay (s)'), _('Seconds between retry attempts.'));
+        o = s.option(form.Value, 'retry_delay', '重试延迟（秒）', '重试间隔（秒）。');
         o.datatype = 'uinteger';
         o.default = '10';
         o.rmempty = false;
 
-        o = s.option(form.Value, 'check_host', _('Connectivity Check Host'), _('URL to verify internet access.'));
+        o = s.option(form.Value, 'check_host', '连通性检测地址', '用于验证互联网连通的 URL。');
         o.default = 'https://connect.rom.miui.com/generate_204';
         o.rmempty = false;
 
-        o = s.option(form.ListValue, 'interface', _('WAN Interface'), _('Interface to get public IP from and monitor.'));
+        o = s.option(form.ListValue, 'interface', 'WAN 接口', '获取公网 IP 和监控链路变化的接口。');
         o.value('wan', 'WAN');
         o.value('wan6', 'WAN6');
         o.default = 'wan';

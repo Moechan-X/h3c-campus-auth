@@ -23,12 +23,6 @@ define Package/luci-app-campus-portal-auth/description
 endef
 
 define Build/Compile
-	$(if $(wildcard ./po/zh_Hans/*.po), \
-		mkdir -p $(PKG_BUILD_DIR)/lmo && \
-		for po in ./po/zh_Hans/*.po; do \
-			po2lmo $$po $(PKG_BUILD_DIR)/lmo/$$(basename $$po .po).lmo; \
-		done \
-	)
 endef
 
 define Package/luci-app-campus-portal-auth/install
@@ -47,12 +41,6 @@ define Package/luci-app-campus-portal-auth/install
 	$(INSTALL_DIR) $(1)/usr/libexec/rpcd
 	$(INSTALL_BIN) ./root/usr/libexec/rpcd/luci.campus_portal_auth \
 		$(1)/usr/libexec/rpcd/luci.campus_portal_auth
-
-	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n
-	$(if $(wildcard $(PKG_BUILD_DIR)/lmo/*.lmo), \
-		$(INSTALL_DATA) $(PKG_BUILD_DIR)/lmo/*.lmo \
-			$(1)/usr/lib/lua/luci/i18n/ \
-	)
 endef
 
 define Package/luci-app-campus-portal-auth/postinst
