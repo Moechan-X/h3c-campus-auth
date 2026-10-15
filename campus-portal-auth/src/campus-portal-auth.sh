@@ -35,7 +35,7 @@ get_wan_ip() {
     ip=$(ifstatus "$iface" 2>/dev/null | jsonfilter -e '@["ipv4-address"][0].address' 2>/dev/null)
 
     if [ -z "$ip" ]; then
-        ip=$(ip -4 addr show dev "$iface" 2>/dev/null | grep -oP 'inet \K[0-9.]+' | head -1)
+        ip=$(ip -4 addr show dev "$iface" 2>/dev/null | sed -n 's/.*inet \([0-9.]\+\).*/\1/p' | head -1)
     fi
 
     echo "$ip"
@@ -120,39 +120,33 @@ do_login() {
     local referer
     referer="$(get_referer)"
 
-    log_info "Login: user=$user wan_ip=$(echo "$login_data" | grep -oP 'wlanuserip=\K[^&]+')"
+    log_info "Login: user=$user wan_ip=$(echo "$login_data" | sed 's/.*wlanuserip=\([^&]*\).*/\1/')"
     debug_log "=== LOGIN REQUEST ==="
     debug_log "URL: $AUTH_URL"
     debug_log "DATA: $login_data"
     debug_log "REFERER: $referer"
 
     local response_file="$STATE_DIR/.login_resp"
-    local headers_file="$STATE_DIR/.login_headers"
 
-    wget -q -O "$response_file" -S \
+    wget -q -O "$response_file" \
         --post-data="$login_data" \
         --header="Content-Type: application/x-www-form-urlencoded" \
         --header="User-Agent: Mozilla/5.0 (Linux; Android 16; Pixel 10) AppleWebKit/537.36 (KHTML, like Gecko) Edg/155.0.0.0 Mobile Safari/537.36" \
         --header="Referer: ${referer}" \
         --timeout=15 \
         --no-check-certificate \
-        "$AUTH_URL" 2>"$headers_file"
+        "$AUTH_URL" 2>/dev/null
 
     local exit_code=$?
     local body=""
     [ -f "$response_file" ] && body=$(cat "$response_file")
 
-    local http_code
-    http_code=$(grep -m1 "HTTP/" "$headers_file" 2>/dev/null | sed 's/.*HTTP\/[0-9.]* \([0-9]*\).*/\1/')
-    [ -z "$http_code" ] && http_code="000"
-
-    log_info "Response: HTTP $http_code body=$body"
+    log_info "Response: exit=$exit_code body=$body"
     debug_log "EXIT CODE: $exit_code"
-    debug_log "HTTP CODE: $http_code"
     debug_log "RESPONSE BODY: $body"
-    debug_log "HEADERS: $(cat "$headers_file" 2>/dev/null)"
 
-    if [ "$http_code" = "200" ]; then
+    # Check if request succeeded and response contains valid JSON
+    if [ "$exit_code" = "0" ] && [ -n "$body" ]; then
         # Parse JSON: {"success":true,"code":200,"result":{"token":"...","distoken":"...","message":"..."}}
         local success
         success=$(echo "$body" | jsonfilter -e '@.success' 2>/dev/null)
@@ -167,6 +161,7 @@ do_login() {
 
         if [ "$success" = "true" ] && [ "$code" = "200" ]; then
             log_info "Login OK: $user - $msg"
+            debug_log "LOGIN SUCCESS: token=$token"
             echo "authenticated" > "$STATUS_FILE"
             echo "$(date +%s)" >> "$STATUS_FILE"
             # Save token for logout/heartbeat
@@ -176,10 +171,12 @@ do_login() {
         fi
 
         log_warn "Login rejected: $user - $msg (success=$success code=$code)"
+        debug_log "LOGIN REJECTED: success=$success code=$code msg=$msg"
         return 1
     fi
 
-    log_warn "Login failed: $user (HTTP $http_code)"
+    log_warn "Login failed: $user (exit=$exit_code)"
+    debug_log "LOGIN FAILED: exit_code=$exit_code body=$body"
     return 1
 }
 
@@ -193,28 +190,26 @@ do_logout() {
     [ -f "$STATE_DIR/token" ] && token=$(cat "$STATE_DIR/token")
 
     log_info "Logout: user=$user"
+    debug_log "=== LOGOUT REQUEST ==="
 
     local response_file="$STATE_DIR/.logout_resp"
-    local headers_file="$STATE_DIR/.logout_headers"
 
     [ -n "$token" ] && local auth_header="Authorization: Bearer ${token}" || local auth_header=""
 
-    wget -q -O "$response_file" -S \
+    wget -q -O "$response_file" \
         --post-data="$logout_data" \
         --header="Content-Type: application/x-www-form-urlencoded" \
         ${auth_header:+--header="$auth_header"} \
         --timeout=10 \
         --no-check-certificate \
-        "$LOGOUT_URL" 2>"$headers_file"
+        "$LOGOUT_URL" 2>/dev/null
 
+    local exit_code=$?
     local body=""
     [ -f "$response_file" ] && body=$(cat "$response_file")
 
-    local http_code
-    http_code=$(grep -m1 "HTTP/" "$headers_file" 2>/dev/null | sed 's/.*HTTP\/[0-9.]* \([0-9]*\).*/\1/')
-    [ -z "$http_code" ] && http_code="000"
-
-    log_info "Logout response: HTTP $http_code body=$body"
+    log_info "Logout response: exit=$exit_code body=$body"
+    debug_log "LOGOUT: exit=$exit_code body=$body"
 
     local success
     success=$(echo "$body" | jsonfilter -e '@.success' 2>/dev/null)
@@ -248,23 +243,20 @@ do_heartbeat() {
     }
 
     local response_file="$STATE_DIR/.heartbeat_resp"
-    local headers_file="$STATE_DIR/.heartbeat_headers"
 
-    wget -q -O "$response_file" -S \
+    wget -q -O "$response_file" \
         --header="Authorization: Bearer ${token}" \
         --timeout=10 \
         --no-check-certificate \
-        "$HEARTBEAT_URL" 2>"$headers_file"
+        "$HEARTBEAT_URL" 2>/dev/null
 
+    local exit_code=$?
     local body=""
     [ -f "$response_file" ] && body=$(cat "$response_file")
 
-    local http_code
-    http_code=$(grep -m1 "HTTP/" "$headers_file" 2>/dev/null | sed 's/.*HTTP\/[0-9.]* \([0-9]*\).*/\1/')
-    [ -z "$http_code" ] && http_code="000"
-
-    if [ "$http_code" != "200" ]; then
-        log_warn "Heartbeat: HTTP $http_code"
+    # Check if request succeeded
+    if [ "$exit_code" != "0" ] || [ -z "$body" ]; then
+        log_warn "Heartbeat: request failed (exit=$exit_code)"
         return 1
     fi
 
@@ -274,6 +266,7 @@ do_heartbeat() {
         local msg
         msg=$(echo "$body" | jsonfilter -e '@.message' 2>/dev/null)
         log_warn "Heartbeat: session invalid - $msg"
+        debug_log "HEARTBEAT FAILED: $msg"
         rm -f "$STATE_DIR/session_info"
         return 1
     fi
